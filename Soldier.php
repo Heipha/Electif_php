@@ -2,8 +2,8 @@
 require_once __DIR__ . '/Personnages.php';
 class Soldier extends Personnages{
     protected $ammo = 10;
-    public function __construct(string $name, int $health, int $strength, float $defense, ?Weapon $weapon = null) {
-        parent::__construct($name, $health, $strength, $defense, 0, $weapon);
+    public function __construct(string $name, int $health, int $strength, float $defense, Element $element, ?Weapon $weapon = null) {
+        parent::__construct($name, $health, $strength, $defense, 0, $element, $weapon);
     }
     // public function attack($target) {
     //     $target->setHealth($target->getHealth() - $this->strength);

@@ -3,8 +3,8 @@ require_once __DIR__ . '/Personnages.php';
 class Wizard extends Personnages{
 
     protected $mana = 10;
-    public function __construct(string $name, int $health, int $strength, float $defense, int $magicalDamage, ?Weapon $weapon = null) {
-        parent::__construct($name, $health, $strength, $defense, $magicalDamage, $weapon);
+    public function __construct(string $name, int $health, int $strength, float $defense, int $magicalDamage, Element $element, ?Weapon $weapon = null) {
+        parent::__construct($name, $health, $strength, $defense, $magicalDamage, $element, $weapon);
     }
     // public function attack($target) {
     //     $target->setHealth($target->getHealth() - $this->strength);

@@ -8,12 +8,17 @@ require_once __DIR__ . '/Wizard.php';
 require_once __DIR__ . '/PhysicalWeapon.php';
 require_once __DIR__ . '/MagicalWeapon.php';
 
+require_once __DIR__ . '/Element.php';
 
-$archer = new Archer('Bruni', 100, 17, 0.05, 7);
+$Feu = new Element(Element::FEU);
+$Eau = new Element(Element::EAU);
+$Plante = new Element(Element::PLANTE);
 
-$Soldier = new Soldier('Jean-Pierre', 120, 14, 0.15);
+$archer = new Archer('Bruni', 100, 17, 0.05, 7, $Plante);
 
-$wizard = new Wizard('Gandalf', 100, 7, 0.25, 17);
+$Soldier = new Soldier('Jean-Pierre', 120, 14, 0.15, $Feu);
+
+$wizard = new Wizard('Gandalf', 100, 7, 0.25, 17, $Eau);
 
 $weapon = new PhysicalWeapon('Épée', 'Une épée de 1m50', 10);
 

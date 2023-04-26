@@ -16,6 +16,8 @@ test equilibrage
 
 */
 require_once __DIR__ . '/Weapon.php';
+require_once __DIR__ . '/Element.php';
+
 abstract class Personnages {
 
     protected string $name;
@@ -25,14 +27,16 @@ abstract class Personnages {
     protected int $magicalDamage;
     protected ?int $damage = null;
     protected ?Weapon $weapon = null;
+    protected Element $element;
 
-    public function __construct($name, $health, $strength, $defense, $magicalDamage, ?Weapon $weapon = null) {
+    public function __construct($name, $health, $strength, $defense, $magicalDamage, Element $element, ?Weapon $weapon = null) {
         $this->name = $name;
         $this->health = $health;
         $this->strength = $strength;
         $this->defense = $defense;
         $this->magicalDamage = $magicalDamage;
         $this->weapon = $weapon;
+        $this->element = $element;
     }
     //Nom getter et setter
     public function getName() {
@@ -97,11 +101,12 @@ abstract class Personnages {
 
     public function attacks(Personnages $target)
     {
-        if($this->hasWeapon()){
-                echo "{$this} attaque {$target} avec {$this->weapon->getName()}!".PHP_EOL;
-                echo "".PHP_EOL;
-                $damageDealt = $target->takesDamagesFrom($this);
-                echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+        if($this->hasWeapon())
+        {
+            echo "{$this} attaque {$target} avec {$this->weapon->getName()}!".PHP_EOL;
+            echo "".PHP_EOL;
+            $damageDealt = $target->takesDamagesFrom($this);
+            echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
         }else{
             echo "{$this} attaque {$target} !".PHP_EOL;
             echo "".PHP_EOL;
@@ -113,12 +118,46 @@ abstract class Personnages {
     public function takesDamagesFrom(Personnages $attacker)
     {
         $damages = $this->takesPhysicalDamagesFrom($attacker) + $this->takesMagicalDamagesFrom($attacker);
-        $this->setHealth(
-            $this->getHealth() - ($damages * (1 - $this->getDefense()))
-        );
         $damageDealt = $damages * (1 - $this->getDefense());
+        if($attacker->effectiveAgainst($this))
+        {
+            echo "C'est super efficace !".PHP_EOL;
+            $damageDealt *= 2;
+        }else{
+            echo "Ce n'est pas très efficace...".PHP_EOL;
+            $damageDealt /= 2;
+        }
+        $this->setHealth(
+            $this->getHealth() - $damageDealt
+        );
+        
         return $damageDealt;
 
+    }
+
+    public function effectiveAgainst(Personnages $target): bool
+    {
+
+        $thisElement = $this->element;
+        $targetElement = $target->getElement();
+        
+        if ($thisElement == Element::EAU && $targetElement == Element::FEU ||
+            $thisElement == Element::FEU && $targetElement == Element::PLANTE ||
+            $thisElement == Element::PLANTE && $targetElement == Element::EAU) {
+            return true;
+        } else {
+            return false;
+        }
+
+        // if ($this->element == Element::EAU && $target->getElement() == Element::FEU ||
+        //     $this->element == Element::FEU && $target->getElement() == Element::PLANTE ||
+        //     $this->element == Element::PLANTE && $target->getElement() == Element::EAU) {
+        //         echo $this->element . " est efficace contre " . $target->getElement() . PHP_EOL;
+        //     return true;
+        // }else{
+        //     echo var_dump($this->element) . " est naze de ouf contre " . var_dump($target->getElement()) . PHP_EOL;
+        //     return false;
+        // }
     }
 
     protected function takesPhysicalDamagesFrom(Personnages $attacker)
@@ -140,6 +179,14 @@ abstract class Personnages {
         $defense = $this->getDefense();
         $result = $damage - ($damage * $defense);
         return $result;
+    }
+
+    public function getElement() {
+        return $this->element;
+    }
+
+    public function setElement($element) {
+        $this->element = $element;
     }
 
     // public function MagicalDamage($target) {
