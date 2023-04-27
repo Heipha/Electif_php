@@ -17,6 +17,7 @@ test equilibrage
 */
 require_once __DIR__ . '/Weapon.php';
 require_once __DIR__ . '/Element.php';
+require_once __DIR__ . '/Spell.php';
 
 abstract class Personnages {
 
@@ -26,15 +27,19 @@ abstract class Personnages {
     protected float $defense;
     protected int $magicalDamage;
     protected ?int $damage = null;
+    protected int $mana;
+    protected ?Spell $spell = null;
     protected ?Weapon $weapon = null;
     protected Element $element;
 
-    public function __construct($name, $health, $strength, $defense, $magicalDamage, Element $element, ?Weapon $weapon = null) {
+    public function __construct($name, $health, $strength, $defense, $magicalDamage, $mana, Element $element, ?Weapon $weapon = null, ?Spell $spell = null) {
         $this->name = $name;
         $this->health = $health;
         $this->strength = $strength;
         $this->defense = $defense;
         $this->magicalDamage = $magicalDamage;
+        $this->mana = $mana;
+        $this->spell = $spell;
         $this->weapon = $weapon;
         $this->element = $element;
     }
@@ -99,20 +104,42 @@ abstract class Personnages {
         return $this->weapon instanceof Weapon;
     }
 
+    public function equipSpell(Spell $spell)
+    {
+        // Vérifiez si le sort est compatible avec l'élément du personnage
+        if($spell instanceof DamageSpell){
+            if($spell->getElement() == $this->getElement()){
+                $this->spell = $spell;
+                echo "{$this} a équipé le sort d'attaque {$spell->getName()} de type {$spell->getElement()}!".PHP_EOL;;
+            }
+        }else{
+            $this->spell = $spell;
+            echo "{$this} a équipé le sort {$spell->getName()}!".PHP_EOL;
+        }
+    }
+
     public function attacks(Personnages $target)
     {
-        if($this->hasWeapon())
-        {
-            echo "{$this} attaque {$target} avec {$this->weapon->getName()}!".PHP_EOL;
-            echo "".PHP_EOL;
-            $damageDealt = $target->takesDamagesFrom($this);
-            echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
-        }else{
-            echo "{$this} attaque {$target} !".PHP_EOL;
-            echo "".PHP_EOL;
-            $damageDealt = $target->takesDamagesFrom($this);
-            echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+        if($this->spell !== null && $this->canCastSpell()){
+            echo "{$this} utilise {$this->spell->getName()}!".PHP_EOL;
+            $damageDealt = $this->castSpell($target);
+            $this->spell->setCooldown($this->spell->getInitialCooldown());
+            return;
+        } else{
+            echo "{$this->spell->getName()} n'est pas encore prêt. Cooldown restant : {$this->spell->getCooldown()} tour(s)".PHP_EOL;
         }
+        if($this->hasWeapon())
+            {
+                echo "{$this} attaque {$target} avec {$this->weapon->getName()}!".PHP_EOL;
+                echo "".PHP_EOL;
+                $damageDealt = $target->takesDamagesFrom($this);
+                echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+            }else{
+                echo "{$this} attaque {$target} !".PHP_EOL;
+                echo "".PHP_EOL;
+                $damageDealt = $target->takesDamagesFrom($this);
+                echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+            }
     }
 
     public function takesDamagesFrom(Personnages $attacker)
@@ -148,16 +175,49 @@ abstract class Personnages {
         } else {
             return false;
         }
+    }
 
-        // if ($this->element == Element::EAU && $target->getElement() == Element::FEU ||
-        //     $this->element == Element::FEU && $target->getElement() == Element::PLANTE ||
-        //     $this->element == Element::PLANTE && $target->getElement() == Element::EAU) {
-        //         echo $this->element . " est efficace contre " . $target->getElement() . PHP_EOL;
-        //     return true;
-        // }else{
-        //     echo var_dump($this->element) . " est naze de ouf contre " . var_dump($target->getElement()) . PHP_EOL;
-        //     return false;
-        // }
+    public function nextTurn()
+    {
+        if ($this->spell !== null && $this->spell->getCooldown()> 0) {
+            $this->spell->setCooldown($this->spell->getCooldown() - 1);
+        }
+    }
+
+    public function canCastSpell(): bool
+    {
+        if ($this->mana >= $this->spell->getManaCost() && $this->spell->getCooldown() == 0) {
+            return true;
+        }else{
+            echo "{$this->spell->getName()} n'est pas encore prêt. Cooldown restant : {$this->spell->getCooldown()} tour(s)".PHP_EOL;
+            return false;
+        }
+    }
+
+    public function castSpell(Personnages $target) 
+    {
+            if($this->spell instanceof HealingSpell){
+                echo "{$this} se soigne de {$this->spell->cast($this)} points de vie !".PHP_EOL;
+            }
+
+            if($this->spell instanceof DamageSpell){
+                if($this->effectiveAgainst($target)){
+                    echo "C'est super efficace !".PHP_EOL;
+                    $damageDealt = $this->spell->cast($target) * 2;
+                    echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+                    return $damageDealt;
+                }else{
+                    echo "Ce n'est pas très efficace...".PHP_EOL;
+                    $damageDealt = $this->spell->cast($target) / 2;
+                    echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+                    return $damageDealt;
+                }
+            }
+
+            if($this->spell instanceof DefenseSpell){
+                echo "{$this} augmente sa défense de {$this->spell->cast($this)} !".PHP_EOL;
+                // $this->spellCooldown = $spell->getCooldown();
+            }
     }
 
     protected function takesPhysicalDamagesFrom(Personnages $attacker)

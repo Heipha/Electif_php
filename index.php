@@ -10,15 +10,24 @@ require_once __DIR__ . '/MagicalWeapon.php';
 
 require_once __DIR__ . '/Element.php';
 
+require_once __DIR__ . '/Spell.php';
+require_once __DIR__ . '/DefenseSpell.php';
+require_once __DIR__ . '/DamageSpell.php';
+require_once __DIR__ . '/HealingSpell.php';
+
 $Feu = new Element(Element::FEU);
 $Eau = new Element(Element::EAU);
 $Plante = new Element(Element::PLANTE);
 
-$archer = new Archer('Bruni', 100, 17, 0.05, 7, $Plante);
+$defenseSpell = new DefenseSpell('Sort de défense','Augmente la Défense définitivement', 10, 0,15);
+$damageSpell = new DamageSpell('Sort de dégâts', 'Coup Critique assuré !', 15, 20, 1, 2);
+$healSpell = new HealingSpell('Sort de soin', 'Soigne le personnage', 12, 10, 1, 2);
 
-$Soldier = new Soldier('Jean-Pierre', 120, 14, 0.15, $Feu);
+$archer = new Archer('Bruni', 100, 17, 0.05, 7, 100, $Plante);
 
-$wizard = new Wizard('Gandalf', 100, 7, 0.25, 17, $Eau);
+$Soldier = new Soldier('Jean-Pierre', 120, 14, 0.15, 50, $Feu);
+
+$wizard = new Wizard('Gandalf', 100, 7, 0.25, 17, 150, $Eau);
 
 $weapon = new PhysicalWeapon('Épée', 'Une épée de 1m50', 10);
 
@@ -35,12 +44,21 @@ echo "{$Soldier} a équipé {$weapon->getName()}".PHP_EOL;
 $wizard->equipWeapon($magicalWeapon);
 echo "{$wizard} a équipé {$magicalWeapon->getName()}". PHP_EOL;
 
+$archer->equipSpell($healSpell);
+echo "{$archer} a équipé {$healSpell->getName()}".PHP_EOL;
+$Soldier->equipSpell($defenseSpell);
+echo "{$Soldier} a équipé {$defenseSpell->getName()}".PHP_EOL;
+$damageSpell->setElement($wizard->getElement());
+$wizard->equipSpell($damageSpell);
+echo "{$wizard} a équipé {$damageSpell->getName()}".PHP_EOL;
+
 while (count($queue) > 1){
     $attacker = array_shift($queue);
     $key= array_rand($queue);
     $defender = $queue[$key];
 
     $attacker->attacks($defender);
+    $attacker->nextTurn();
 
 
     if ($defender->isDead()) {
@@ -56,6 +74,7 @@ while (count($queue) > 1){
     echo PHP_EOL;
     array_unshift($queue, $attacker);
     shuffle($queue);
+
 }
 
 $winner = array_pop($queue);

@@ -2,11 +2,11 @@
 require_once __DIR__ . '/Personnages.php';
 class Archer extends Personnages{
     protected $arrow = 10;
-    public function __construct(string $name, int $health, int $strength, float $defense, int $magicalDamage, Element $element, ?Weapon $weapon = null) {
+    public function __construct(string $name, int $health, int $strength, float $defense, int $magicalDamage, int $mana, Element $element, ?Weapon $weapon = null, ?Spell $spell = null) {
         if($magicalDamage > $strength){
             throw new Exception("L'archer' ne peut pas avoir plus de dégats magiques que de dégats physiques");
         }
-        parent::__construct($name, $health, $strength, $defense, $magicalDamage, $element, $weapon);
+        parent::__construct($name, $health, $strength, $defense, $magicalDamage, $mana, $element, $weapon, $spell);
     }
 
     // public function attack($target) {
