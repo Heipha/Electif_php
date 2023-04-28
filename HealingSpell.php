@@ -18,10 +18,9 @@ class HealingSpell extends Spell {
         $this->healing = $healing;
     }
 
-    public function cast(Personnages $caster) {
+    public function castHealingSpell(Personnages $caster) {
         $caster->setHealth($caster->getHealth() + $this->healing);
         $this->cooldown = $this->initialCooldown;
-        var_dump($this->cooldown);
         return $this->healing;	
     }
 }

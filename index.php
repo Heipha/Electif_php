@@ -45,12 +45,21 @@ $wizard->equipWeapon($magicalWeapon);
 echo "{$wizard} a équipé {$magicalWeapon->getName()}". PHP_EOL;
 
 $archer->equipSpell($healSpell);
-echo "{$archer} a équipé {$healSpell->getName()}".PHP_EOL;
+$archer->equipSpell($defenseSpell);
+$damageSpell->setElement($archer->getElement());
+$archer->equipSpell($damageSpell);
+
+$Soldier->equipSpell($healSpell);
 $Soldier->equipSpell($defenseSpell);
-echo "{$Soldier} a équipé {$defenseSpell->getName()}".PHP_EOL;
+$damageSpell->setElement($Soldier->getElement());
+$Soldier->equipSpell($damageSpell);
+
+$wizard->equipSpell($healSpell);
+$wizard->equipSpell($defenseSpell);
 $damageSpell->setElement($wizard->getElement());
 $wizard->equipSpell($damageSpell);
-echo "{$wizard} a équipé {$damageSpell->getName()}".PHP_EOL;
+
+
 
 while (count($queue) > 1){
     $attacker = array_shift($queue);

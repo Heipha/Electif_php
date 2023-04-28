@@ -28,11 +28,10 @@ class DamageSpell extends Spell {
         $this->element = $element;
     }
 
-    public function cast(Personnages $target) {
+    public function castDamageSpell(Personnages $target) {
         $damageDealt = $target->getHealth() - $this->damage;
         $target->setHealth($damageDealt);
         $this->cooldown = $this->initialCooldown;
-        var_dump($this->cooldown);
         return $this->damage;
     }
 }

@@ -28,6 +28,7 @@ abstract class Personnages {
     protected int $magicalDamage;
     protected ?int $damage = null;
     protected int $mana;
+    protected array $spells = [];
     protected ?Spell $spell = null;
     protected ?Weapon $weapon = null;
     protected Element $element;
@@ -39,6 +40,7 @@ abstract class Personnages {
         $this->defense = $defense;
         $this->magicalDamage = $magicalDamage;
         $this->mana = $mana;
+        $this->spells[] = $spell;
         $this->spell = $spell;
         $this->weapon = $weapon;
         $this->element = $element;
@@ -106,40 +108,63 @@ abstract class Personnages {
 
     public function equipSpell(Spell $spell)
     {
-        // Vérifiez si le sort est compatible avec l'élément du personnage
+        if (count($this->spells) > 3) {
+            echo "{$this->name} ne peut pas équiper plus de 3 sorts.".PHP_EOL;
+            return;
+        }
+
         if($spell instanceof DamageSpell){
             if($spell->getElement() == $this->getElement()){
-                $this->spell = $spell;
+                $this->spells[] = $spell;
                 echo "{$this} a équipé le sort d'attaque {$spell->getName()} de type {$spell->getElement()}!".PHP_EOL;;
             }
         }else{
-            $this->spell = $spell;
+            $this->spells[] = $spell;
             echo "{$this} a équipé le sort {$spell->getName()}!".PHP_EOL;
         }
     }
 
+    public function getEquippedSpells(): array {
+        return $this->spells;
+    }
+
     public function attacks(Personnages $target)
     {
-        if($this->spell !== null && $this->canCastSpell()){
-            echo "{$this} utilise {$this->spell->getName()}!".PHP_EOL;
-            $damageDealt = $this->castSpell($target);
-            $this->spell->setCooldown($this->spell->getInitialCooldown());
-            return;
-        } else{
-            echo "{$this->spell->getName()} n'est pas encore prêt. Cooldown restant : {$this->spell->getCooldown()} tour(s)".PHP_EOL;
+        $spellUsed = false;
+        $readySpells = $this->canCastSpell();
+        $canAttack = $readySpells['canAttack'];
+        var_dump($readySpells);
+
+        if(!empty($readySpells)){
+            foreach ($readySpells as $spell) {
+                    if ($spell instanceof DamageSpell || $spell instanceof HealingSpell) {
+                        echo "{$this} utilise {$spell->getName()}!".PHP_EOL;
+                        $damageDealt = $this->castSpell($target, $spell);
+                        $spell->setCooldown($spell->getInitialCooldown());
+                        $spellUsed = true;
+                        break;
+                    }else if($spell instanceof DefenseSpell){
+                        echo "{$this} utilise {$spell->getName()}!".PHP_EOL;
+                        $this->castSpell($target, $spell);
+                        break;
+                    }
+             }
         }
-        if($this->hasWeapon())
-            {
-                echo "{$this} attaque {$target} avec {$this->weapon->getName()}!".PHP_EOL;
-                echo "".PHP_EOL;
-                $damageDealt = $target->takesDamagesFrom($this);
-                echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
-            }else{
-                echo "{$this} attaque {$target} !".PHP_EOL;
-                echo "".PHP_EOL;
-                $damageDealt = $target->takesDamagesFrom($this);
-                echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+
+        if (!$spellUsed && $canAttack) {
+            if($this->hasWeapon())
+                {
+                    echo "{$this} attaque {$target} avec {$this->weapon->getName()}!".PHP_EOL;
+                    echo "".PHP_EOL;
+                    $damageDealt = $target->takesDamagesFrom($this);
+                    echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
+                }else{
+                    echo "{$this} attaque {$target} !".PHP_EOL;
+                    echo "".PHP_EOL;
+                    $damageDealt = $target->takesDamagesFrom($this);
+                    echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
             }
+        }
     }
 
     public function takesDamagesFrom(Personnages $attacker)
@@ -179,43 +204,62 @@ abstract class Personnages {
 
     public function nextTurn()
     {
-        if ($this->spell !== null && $this->spell->getCooldown()> 0) {
-            $this->spell->setCooldown($this->spell->getCooldown() - 1);
+        $spells = $this->getEquippedSpells();
+        foreach($spells as $spell){
+            if ($spell !== null && $spell->getCooldown()> 0) {
+                $spell->setCooldown($spell->getCooldown() - 1);
+            }
         }
     }
 
-    public function canCastSpell(): bool
+    public function canCastSpell(): array
     {
-        if ($this->mana >= $this->spell->getManaCost() && $this->spell->getCooldown() == 0) {
-            return true;
-        }else{
-            echo "{$this->spell->getName()} n'est pas encore prêt. Cooldown restant : {$this->spell->getCooldown()} tour(s)".PHP_EOL;
-            return false;
+        $readySpells = [];
+        $canAttack = true;
+
+        $nextSpellIndex = 0;
+        
+        $spells = $this->getEquippedSpells();
+        
+        while (count($readySpells) == 0 && $nextSpellIndex < count($spells)) {
+            $spell = $spells[$nextSpellIndex];
+            if ($spell !== null && $this->mana >= $spell->getManaCost() && $spell->getCooldown() == 0) {
+                $readySpells[] = $spell;
+                if ($spell instanceof DamageSpell || $spell instanceof HealingSpell) {
+                    $canAttack = false;
+                }
+            }else if($spell !== null && $spell->getCooldown() > 0){
+                echo "{$spell->getName()} n'est pas encore prêt. Cooldown restant : {$spell->getCooldown()} tour(s)".PHP_EOL;
+            }
+            $nextSpellIndex++;
         }
+        $readySpells['canAttack'] = $canAttack;
+
+        return $readySpells;
     }
 
-    public function castSpell(Personnages $target) 
+    public function castSpell(Personnages $target, Spell $spell) 
     {
-            if($this->spell instanceof HealingSpell){
-                echo "{$this} se soigne de {$this->spell->cast($this)} points de vie !".PHP_EOL;
+            if($spell instanceof HealingSpell){
+                echo "{$this} se soigne de {$spell->castHealingSpell($this)} points de vie !".PHP_EOL;
             }
 
-            if($this->spell instanceof DamageSpell){
+            if($spell instanceof DamageSpell){
                 if($this->effectiveAgainst($target)){
                     echo "C'est super efficace !".PHP_EOL;
-                    $damageDealt = $this->spell->cast($target) * 2;
+                    $damageDealt = $spell->castDamageSpell($target) * 2;
                     echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
                     return $damageDealt;
                 }else{
                     echo "Ce n'est pas très efficace...".PHP_EOL;
-                    $damageDealt = $this->spell->cast($target) / 2;
+                    $damageDealt = $spell->castDamageSpell($target) / 2;
                     echo "{$this} inflige {$damageDealt} points de dégâts à {$target} !".PHP_EOL;
                     return $damageDealt;
                 }
             }
 
-            if($this->spell instanceof DefenseSpell){
-                echo "{$this} augmente sa défense de {$this->spell->cast($this)} !".PHP_EOL;
+            if($spell instanceof DefenseSpell){
+                echo "{$this} augmente sa défense de {$spell->cast($this)} !".PHP_EOL;
                 // $this->spellCooldown = $spell->getCooldown();
             }
     }
